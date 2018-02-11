@@ -1,5 +1,5 @@
 
-from os import path, listdir
+from os import path, listdir, environ
 from .package import Package
 import inspect
 
@@ -34,15 +34,35 @@ class Workspace(object):
         :rtype: str
         """
         if git_cmd == 'log': return self.run_cmd_log(package, flags)
+        if git_cmd == 'pull': return self.run_cmd_pull(package, flags)
+        if git_cmd == 'sync': return self.run_cmd_sync(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     def run_cmd_log(self, package, flags):
         """
         :param package: Package
-        :param flags: str
+        :param flags: list(str)
         :rtype: str
         """
         return package.cmd_log(flags)
+
+    def run_cmd_pull(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        return package.cmd_pull(flags)
+
+    def run_cmd_sync(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        remote = environ['master_branch'].split('/')[0] if '/' in environ['master_branch'] else 'origin'
+        branch = environ['master_branch'].split('/')[1] if '/' in environ['master_branch'] else environ['master_branch']
+        return package.cmd_pull(flags, remote, branch)
 
     def _print_cmd_output(self, package, output):
         """
