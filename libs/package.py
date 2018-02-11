@@ -16,6 +16,9 @@ class Package(object):
         self.repo = Repo(location)
         self.git = self.repo.git
 
+    def get_cur_branch(self):
+        return self.repo.head.reference.name
+
     def run(self, cmd, flags):
         """
         :param str cmd:
