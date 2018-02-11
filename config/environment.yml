@@ -1,0 +1,3 @@
+version: 0.1
+default_ws: ./ws/
+master_branch: origin/master
