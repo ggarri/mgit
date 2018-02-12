@@ -1,5 +1,8 @@
 
 from os import path, listdir, environ
+
+from git import GitCommandError
+
 from .package import Package
 import inspect
 
@@ -23,7 +26,12 @@ class Workspace(object):
         for package in self.packages:
             cmd = git_cmd[0]
             flags = git_cmd[1:]
-            output = self.run_cmd(package, cmd, flags)
+            try:
+                output = self.run_cmd(package, cmd, flags)
+            except GitCommandError as e:
+                output = e.stderr
+            except ValueError as e:
+                output = e.message
             self._print_cmd_output(package, output)
 
     def run_cmd(self, package, git_cmd, flags):
@@ -36,6 +44,8 @@ class Workspace(object):
         if git_cmd == 'log': return self.run_cmd_log(package, flags)
         if git_cmd == 'pull': return self.run_cmd_pull(package, flags)
         if git_cmd == 'sync': return self.run_cmd_sync(package, flags)
+        if git_cmd == 'status': return self.run_cmd_status(package, flags)
+        if git_cmd == 'diff': return self.run_cmd_diff(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     def run_cmd_log(self, package, flags):
@@ -53,6 +63,22 @@ class Workspace(object):
         :rtype: str
         """
         return package.cmd_pull(flags)
+
+    def run_cmd_status(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        return package.cmd_status(flags)
+
+    def run_cmd_diff(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        return package.cmd_diff(flags)
 
     def run_cmd_sync(self, package, flags):
         """

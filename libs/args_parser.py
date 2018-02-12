@@ -1,10 +1,11 @@
 import argparse
+from argparse import ArgumentParser
 from os import environ
 
-class AppArgsParser():
+class AppArgsParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = argparse.ArgumentParser(description='MGit arguments description.', prog='MultiGit')
+        parser = AppArgsParser(description='MGit arguments description.', prog='MultiGit')
         # Define source folder otherwise current folder
         parser.add_argument('--src', nargs='?', type=str, default=environ.get('ws.default'), dest='workspace',
                             help='workspace folder')
@@ -12,10 +13,10 @@ class AppArgsParser():
         return parser
 
 
-class GitLogParser():
+class GitLogParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = argparse.ArgumentParser(description='"git log" arguments ', prog='Git Log')
+        parser = GitLogParser(description='"git log" arguments ', prog='Git Log')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         parser.add_argument('-n', type=int, dest='n', default=5)
         parser.add_argument('--oneline', type=bool, required=False, dest='oneline')
@@ -25,9 +26,24 @@ class GitLogParser():
                             dest='pretty')
         return parser
 
-class GitPullParser():
+class GitStatusParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = argparse.ArgumentParser(description='"git pull" arguments', prog='Git Pull')
+        parser = GitStatusParser(description='"git status" arguments', prog='Git Status')
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitDiffParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitDiffParser(description='"git pull" arguments', prog='Git Pull')
+        parser.add_argument('--color', type=str, default='always')
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitPullParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitPullParser(description='"git pull" arguments', prog='Git Pull')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
