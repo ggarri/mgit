@@ -2,6 +2,10 @@ import argparse
 from argparse import ArgumentParser
 from os import environ
 
+from enum import Enum
+
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'rebase', 'reset']
+
 class AppArgsParser(ArgumentParser):
     @staticmethod
     def create():
@@ -10,6 +14,7 @@ class AppArgsParser(ArgumentParser):
         parser.add_argument('--src', nargs='?', type=str, default=environ.get('ws.default'), dest='workspace',
                             help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
+        parser.add_argument("git_cmd", help="Git command", choices=available_git_actions, type=str)
         return parser
 
 

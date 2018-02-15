@@ -20,4 +20,5 @@ if __name__ == "__main__":
     parser = AppArgsParser.create()
     args, git = parser.parse_known_args()
     ws = Workspace(path.join(CUR_DIR, args.workspace))
-    ws.run(git)
+    if not args.git_cmd: parser.print_help()
+    ws.run(args.git_cmd, git)
