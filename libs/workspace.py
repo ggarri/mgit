@@ -1,8 +1,9 @@
-
-from os import path, listdir, environ
+import traceback
+from os import path, listdir
 
 from git import GitCommandError
 
+from helpers import Color
 from .package import Package
 from libs.args_parser import *
 import inspect
@@ -29,9 +30,11 @@ class Workspace(object):
             try:
                 output = self.run_cmd(package, git_cmd, git_args)
             except GitCommandError as e:
-                output = e.stderr
+                output = Color.red(e.stderr)
             except ValueError as e:
-                output = e.message
+                output = Color.red(e.message)
+            except:
+                output = Color.red(traceback.format_exc())
             self._print_cmd_output(package, output)
 
     def run_cmd(self, package, git_cmd, flags):
@@ -82,7 +85,7 @@ class Workspace(object):
         :rtype: str
         """
         args, remote_branch = self._get_cmd_args(GitPullParser.create(), flags)
-        return package.cmd_pull(flags, remote_branch[0], remote_branch[1])
+        return package.cmd_pull(args, remote_branch[0], remote_branch[1])
 
     def run_cmd_sync(self, package, flags):
         """

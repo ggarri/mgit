@@ -1,5 +1,6 @@
-from git import Repo
+from git import Repo, GitCommandError
 from git.cmd import Git
+from helpers import Color
 from os import path, environ
 
 class Package(object):
@@ -15,7 +16,11 @@ class Package(object):
         self.git = self.repo.git
 
     def get_cur_branch(self):
-        return self.repo.head.reference.name
+        try:
+            return self.repo.head.reference.name
+        except TypeError as e:
+            print(e.message)
+            return None
 
     def get_available_remotes(self):
         return [remote.name for remote in self.repo.remotes]
@@ -57,18 +62,49 @@ class Package(object):
             if branch == self.get_cur_branch():
                 output = self.git.pull(remote, branch)
             else:
-                output = self.git.rebase(remote, branch)
+                if 'rebase' not in flags:raise ValueError('Merge is not allowed. You need to use --rebase to pull')
+                cur_branch = self.get_cur_branch()
+                try:
+                    output = self.git.rebase(remote, branch)
+                except GitCommandError as e:
+                    self.git.rebase(abort=True)
+                    self.git.checkout(cur_branch)
+                    print(Color.red("ERR: Rebasing"))
+                    raise e
         finally:
             if 'stashed' in locals() and stashed: self.git.stash('pop')
 
         return output
 
+    def cmd_push(self, flags, remote, branch):
+        remote = remote or environ['remote.default']
+        branch = branch or self.get_cur_branch()
+        self._assert_remote_branch(remote, branch)
+        self.git.fetch([remote])
+        # Getting number of commits behind
+        remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
+
+        local_diff = self.git.status(porcelain=True).split('\n')
+        try:
+            if len(local_diff) > 0:
+                stashed = self.git.stash(u=True)
+            if branch == self.get_cur_branch():
+                output = self.git.pull(remote, branch)
+            else:
+                try:
+                    output = self.git.rebase(remote, branch)
+                except GitCommandError as e:
+                    self.git.rebase(abort=True)
+                    raise e
+        finally:
+            if 'stashed' in locals() and stashed: self.git.stash('pop')
+
     def _assert_remote_branch(self, remote, branch):
         available_remotes = self.get_available_remotes()
-        if remote not in available_remotes: raise ValueError('Remote %s does not exists' % remote)
+        if remote not in available_remotes: raise ValueError('Remote "%s" does not exists' % remote)
         available_branch = self.get_available_remote_branches(remote)
-        if branch not in available_branch: raise ValueError('Branch %s does not exists' % branch)
-        print('\033[1;31mIMPORTANT: Command running with %s/%s\033[0;0m' % (remote, branch))
+        if branch not in available_branch: raise ValueError('Branch "%s" does not exists' % branch)
+        print(Color.yellow('IMPORTANT: Command running with %s/%s' % (remote, branch)))
 
     def _get_args_list(self, args):
         return ['--%s=%s' % (key, value) for key, value in args.items()]
