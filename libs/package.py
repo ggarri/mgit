@@ -15,12 +15,12 @@ class Package(object):
         self.repo = Repo(location)
         self.git = self.repo.git
 
+    # TODO: Improve exception
     def get_cur_branch(self):
         try:
             return self.repo.head.reference.name
-        except TypeError as e:
-            print(e.message)
-            return None
+        except TypeError:
+            return "Branch had been detached"
 
     def get_available_remotes(self):
         return [remote.name for remote in self.repo.remotes]
@@ -49,28 +49,18 @@ class Package(object):
         remote = remote or environ['remote.default']
         branch = branch or self.get_cur_branch()
         self._assert_remote_branch(remote, branch)
-        self.git.fetch([remote])
-        # Getting number of commits behind
-        remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
-        # In case there is not commits behind leave
-        if len(remote_commits) == 0: return 'Already up-to-date.'
 
-        local_diff = self.git.status(porcelain=True).split('\n')
         try:
-            if len(local_diff) > 0:
-                stashed = self.git.stash(u=True)
-            if branch == self.get_cur_branch():
-                output = self.git.pull(remote, branch)
+            if not self._is_behind_commit(remote, branch):
+                output = 'Already up-to-date.'
             else:
-                if 'rebase' not in flags:raise ValueError('Merge is not allowed. You need to use --rebase to pull')
-                cur_branch = self.get_cur_branch()
-                try:
-                    output = self.git.rebase(remote, branch)
-                except GitCommandError as e:
-                    self.git.rebase(abort=True)
-                    self.git.checkout(cur_branch)
-                    print(Color.red("ERR: Rebasing"))
-                    raise e
+                if self.is_there_local_changes(): stashed = self.git.stash(u=True)
+
+                if branch == self.get_cur_branch(): output = self.git.pull(remote, branch)
+                else:
+                    if 'rebase' not in flags:
+                        raise ValueError('Merge is not allowed. You need to use --rebase to pull')
+                    output = self.cmd_rebase(remote, branch)
         finally:
             if 'stashed' in locals() and stashed: self.git.stash('pop')
 
@@ -80,24 +70,50 @@ class Package(object):
         remote = remote or environ['remote.default']
         branch = branch or self.get_cur_branch()
         self._assert_remote_branch(remote, branch)
-        self.git.fetch([remote])
-        # Getting number of commits behind
-        remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
+        if 'force' in flags:
+            args = self._get_args_list(flags) + [remote, branch]
+            self.git.push(args)
+            output = Color.green('Push --force completed')
+        elif not self._is_ahead_commit(remote, branch):
+            output = Color.yellow('Nothing to commit')
+        else:
+            if self._is_behind_commit(remote, branch):
+                if 'rebase' not in flags: raise ValueError('Merge is not allowed. You need to use --rebase to push')
+                self.cmd_rebase(remote, branch)
+            self.git.push(remote, branch)
+            output = Color.green('Push completed')
 
-        local_diff = self.git.status(porcelain=True).split('\n')
+        return output
+
+    def cmd_rebase(self, remote, branch):
+        cur_branch = self.get_cur_branch()
         try:
-            if len(local_diff) > 0:
-                stashed = self.git.stash(u=True)
-            if branch == self.get_cur_branch():
-                output = self.git.pull(remote, branch)
-            else:
-                try:
-                    output = self.git.rebase(remote, branch)
-                except GitCommandError as e:
-                    self.git.rebase(abort=True)
-                    raise e
+            if self.is_there_local_changes(): stashed = self.git.stash(u=True)
+            output = self.git.rebase(remote, branch)
+        except GitCommandError as e:
+            self.git.rebase(abort=True)
+            self.git.checkout(cur_branch)
+            print(Color.red("ERR: Rebasing"))
+            raise e
         finally:
             if 'stashed' in locals() and stashed: self.git.stash('pop')
+        return output
+
+    def _is_behind_commit(self, remote, branch):
+        # Getting number of commits behind
+        self.git.fetch([remote])
+        remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
+        return len(remote_commits) > 0
+
+    def _is_ahead_commit(self, remote, branch):
+        # Getting number of commits behind
+        self.git.fetch([remote])
+        remote_commits = self.git.log(*['--oneline', '%s/%s..HEAD' % (remote, branch)])
+        return len(remote_commits) > 0
+
+    def is_there_local_changes(self):
+        local_diff = self.git.status(porcelain=True).split('\n')
+        return len(local_diff) > 0
 
     def _assert_remote_branch(self, remote, branch):
         available_remotes = self.get_available_remotes()
@@ -107,7 +123,7 @@ class Package(object):
         print(Color.yellow('IMPORTANT: Command running with %s/%s' % (remote, branch)))
 
     def _get_args_list(self, args):
-        return ['--%s=%s' % (key, value) for key, value in args.items()]
+        return ['--%s%s'%(key, '' if type(value) == bool else '='+value) for key, value in args.items()]
 
     def __repr__(self):
         return "<Package: %s(%s)>" % (self.name, self.location)

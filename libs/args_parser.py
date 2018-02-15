@@ -51,7 +51,7 @@ class GitPullParser(ArgumentParser):
     def create():
         parser = GitPullParser(description='"git pull" arguments', prog='Git Pull')
         parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
-                            help='Include rebase process in case there are changes')
+                            help='Include git --rebase action')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
 
@@ -59,5 +59,8 @@ class GitPushParser(ArgumentParser):
     @staticmethod
     def create():
         parser = GitPullParser(description='"git pull" arguments', prog='Git Pull')
-        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
+                            help='Include git --rebase action')
+        parser.add_argument('--force', dest='force', action='store_true', required=False,
+                            help='Include git --force action')
         return parser

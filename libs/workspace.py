@@ -49,6 +49,7 @@ class Workspace(object):
         if git_cmd == 'sync': return self.run_cmd_sync(package, flags)
         if git_cmd == 'status': return self.run_cmd_status(package, flags)
         if git_cmd == 'diff': return self.run_cmd_diff(package, flags)
+        if git_cmd == 'push': return self.run_cmd_push(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     def run_cmd_log(self, package, flags):
@@ -86,6 +87,15 @@ class Workspace(object):
         """
         args, remote_branch = self._get_cmd_args(GitPullParser.create(), flags)
         return package.cmd_pull(args, remote_branch[0], remote_branch[1])
+
+    def run_cmd_push(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        args, remote_branch = self._get_cmd_args(GitPushParser.create(), flags)
+        return package.cmd_push(args, remote_branch[0], remote_branch[1])
 
     def run_cmd_sync(self, package, flags):
         """
