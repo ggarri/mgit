@@ -3,11 +3,12 @@ from git.cmd import Git
 from helpers import Color
 from os import path, environ
 
+
 class Package(object):
     location = None
     name = None
     repo = None
-    git = None # type: Git
+    git = None  # type: Git
 
     def __init__(self, location):
         self.name = path.split(location)[-1]
@@ -32,18 +33,24 @@ class Package(object):
             available_branches = [ref.remote_head for ref in remote.refs]
         return available_branches
 
-    def cmd_log(self, flags):
-        return self.git.log(**flags)
+    def cmd_log(self, flags, remote, branch):
+        list_args = self._get_args_list(flags)
+        if remote and branch:
+            list_args += ['%s/%s' % (remote, branch)]
+        output = self.git.log(list_args)
+        if not output: output = Color.yellow("There is not changes")
+        return output
 
     def cmd_status(self, flags):
         return self.git.status(**flags)
 
     def cmd_diff(self, flags, remote, branch):
-        remote = remote or environ['remote.default']
-        branch = branch or self.get_cur_branch()
-        self._assert_remote_branch(remote, branch)
-        list_args = self._get_args_list(flags) + ['%s/%s' % (remote, branch)]
-        return self.git.diff(list_args)
+        list_args = self._get_args_list(flags)
+        if remote and branch:
+            list_args += ['%s/%s' % (remote, branch)]
+        output = self.git.diff(*list_args)
+        if not output: output = Color.yellow("There is not changes")
+        return output
 
     def cmd_pull(self, flags, remote, branch):
         remote = remote or environ['remote.default']
@@ -56,7 +63,8 @@ class Package(object):
             else:
                 if self._is_there_local_changes(): stashed = self.git.stash(u=True)
 
-                if branch == self.get_cur_branch(): output = self.git.pull(remote, branch)
+                if branch == self.get_cur_branch():
+                    output = self.git.pull(remote, branch)
                 else:
                     if 'rebase' not in flags:
                         raise ValueError('Merge is not allowed. You need to use --rebase to pull')
@@ -123,7 +131,10 @@ class Package(object):
         print(Color.yellow('IMPORTANT: Command running with %s/%s' % (remote, branch)))
 
     def _get_args_list(self, args):
-        return ['--%s%s'%(key, '' if type(value) == bool else '='+value) for key, value in args.items()]
+        return ['%s%s' % (
+            key if '-' in key else '--'+str(key),
+            '' if type(value) == bool else (' ' if '-' in key else '=') + str(value)) \
+                for key, value in args.items()]
 
     def __repr__(self):
         return "<Package: %s(%s)>" % (self.name, self.location)

@@ -8,7 +8,7 @@ class AppArgsParser(ArgumentParser):
     def create():
         parser = AppArgsParser(description='MGit arguments description.', prog='MultiGit')
         # Define source folder otherwise current folder
-        parser.add_argument('--src', nargs='?', type=str, dest='workspace',
+        parser.add_argument('--ws', nargs='?', type=str, dest='workspace',
                             help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
         parser.add_argument("git_cmd", help="Git command", choices=available_git_actions, type=str)
@@ -20,7 +20,7 @@ class GitLogParser(ArgumentParser):
     def create():
         parser = GitLogParser(description='"git log" arguments ', prog='Git Log')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
-        parser.add_argument('-n', type=int, dest='n', default=5)
+        parser.add_argument('-n', type=int, dest='-n', default=5)
         parser.add_argument('--oneline', type=bool, required=False, dest='oneline')
         parser.add_argument('--pretty',
                             type=str,

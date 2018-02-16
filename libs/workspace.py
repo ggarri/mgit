@@ -58,8 +58,8 @@ class Workspace(object):
         :param flags: list(str)
         :rtype: str
         """
-        args, unknown = self._get_cmd_args(GitLogParser.create(), flags)
-        return package.cmd_log(args)
+        args, remote_branch = self._get_cmd_args(GitLogParser.create(), flags)
+        return package.cmd_log(args, remote_branch[0], remote_branch[1])
 
     def run_cmd_status(self, package, flags):
         """
@@ -116,16 +116,12 @@ class Workspace(object):
         args, unknown = parser.parse_known_args(flags)
         filter_args = dict((k, v) for k, v in vars(args).iteritems() if v)
 
-        if isinstance(parser, GitPullParser) or isinstance(parser, GitDiffParser):
-            remote, branch = None, None
-            if len(unknown) >= 2: remote, branch = unknown[0], unknown[1]
-            elif len(unknown) >= 1:
-                if '/' in unknown[0]: remote, branch = unknown[0].split('/')[0], unknown[0].split('/')[1]
-                else: branch = unknown[0]
-            return filter_args, [remote, branch]
-
-        return filter_args, unknown
-
+        remote, branch = None, None
+        if len(unknown) >= 2: remote, branch = unknown[0], unknown[1]
+        elif len(unknown) >= 1:
+            if '/' in unknown[0]: remote, branch = unknown[0].split('/')[0], unknown[0].split('/')[1]
+            else: branch = unknown[0]
+        return filter_args, [remote, branch]
 
     def _print_cmd_output(self, package, output):
         """
