@@ -20,7 +20,7 @@ class Package(object):
         try:
             return self.repo.head.reference.name
         except TypeError:
-            return "Branch had been detached"
+            return "Branch detached"
 
     def get_available_remotes(self):
         return [remote.name for remote in self.repo.remotes]
@@ -54,7 +54,7 @@ class Package(object):
             if not self._is_behind_commit(remote, branch):
                 output = 'Already up-to-date.'
             else:
-                if self.is_there_local_changes(): stashed = self.git.stash(u=True)
+                if self._is_there_local_changes(): stashed = self.git.stash(u=True)
 
                 if branch == self.get_cur_branch(): output = self.git.pull(remote, branch)
                 else:
@@ -88,7 +88,7 @@ class Package(object):
     def cmd_rebase(self, remote, branch):
         cur_branch = self.get_cur_branch()
         try:
-            if self.is_there_local_changes(): stashed = self.git.stash(u=True)
+            if self._is_there_local_changes(): stashed = self.git.stash(u=True)
             output = self.git.rebase(remote, branch)
         except GitCommandError as e:
             self.git.rebase(abort=True)
@@ -111,7 +111,7 @@ class Package(object):
         remote_commits = self.git.log(*['--oneline', '%s/%s..HEAD' % (remote, branch)])
         return len(remote_commits) > 0
 
-    def is_there_local_changes(self):
+    def _is_there_local_changes(self):
         local_diff = self.git.status(porcelain=True).split('\n')
         return len(local_diff) > 0
 

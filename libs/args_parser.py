@@ -1,8 +1,5 @@
-import argparse
 from argparse import ArgumentParser
 from os import environ
-
-from enum import Enum
 
 available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'rebase', 'reset']
 
@@ -11,7 +8,7 @@ class AppArgsParser(ArgumentParser):
     def create():
         parser = AppArgsParser(description='MGit arguments description.', prog='MultiGit')
         # Define source folder otherwise current folder
-        parser.add_argument('--src', nargs='?', type=str, default=environ.get('ws.default'), dest='workspace',
+        parser.add_argument('--src', nargs='?', type=str, dest='workspace',
                             help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
         parser.add_argument("git_cmd", help="Git command", choices=available_git_actions, type=str)
