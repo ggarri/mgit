@@ -1,4 +1,3 @@
 version: 0.1
-ws.default: ./ws
 master_branch: origin/master
 remote.default: origin
