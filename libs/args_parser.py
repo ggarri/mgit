@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'rebase', 'reset']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'reset']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod

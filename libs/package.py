@@ -90,8 +90,7 @@ class Package(object):
             if self._is_behind_commit(remote, branch):
                 if 'rebase' not in flags: raise ValueError('Merge is not allowed. You need to use --rebase to push')
                 self.cmd_rebase(remote, branch)
-            self.git.push(remote, branch)
-            output = Color.green('Push completed')
+            output = Color.green(self.git.push(remote, branch) or 'Push completed')
 
         return output
 
