@@ -64,8 +64,7 @@ class Package(object):
             if not self._is_behind_commit(remote, branch):
                 output = 'Already up-to-date.'
             else:
-                if self._is_there_local_changes(): stashed = self.git.stash(u=True)
-
+                if self._is_there_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
                 if branch == cur_branch:
                     output = self.git.pull(remote, branch)
                 else:
@@ -100,8 +99,8 @@ class Package(object):
         cur_remote, cur_branch = self.get_cur_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
         try:
-            if self._is_there_local_changes(): stashed = self.git.stash(u=True)
-            output = self.git.rebase(remote, branch)
+            if self._is_there_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
+            output = self.git.rebase('%s/%s'%(remote,branch))
         except GitCommandError as e:
             self.git.rebase(abort=True)
             self.git.checkout(cur_branch)
@@ -125,7 +124,8 @@ class Package(object):
 
     def _is_there_local_changes(self):
         local_diff = self.git.status(porcelain=True).split('\n')
-        return len(local_diff) > 0
+        diffs = [diff for diff in local_diff if diff]
+        return len(diffs) > 0
 
     def _assert_remote_branch(self, remote, branch):
         available_remotes = self.get_available_remotes()
