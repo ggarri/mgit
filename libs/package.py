@@ -16,12 +16,15 @@ class Package(object):
         self.repo = Repo(location)
         self.git = self.repo.git
 
-    # TODO: Improve exception
     def get_cur_branch(self):
+        if self.repo.head.is_detached: return "Branch detached"
         try:
-            return self.repo.head.reference.name
+            branch = self.repo.head.reference.name
+            remote = next(iter([remote.name for remote in self.repo.remotes if self.repo.head.repo == remote.repo]))
         except TypeError:
             return "Branch detached"
+        else:
+            return remote, branch
 
     def get_available_remotes(self):
         return [remote.name for remote in self.repo.remotes]
@@ -34,6 +37,7 @@ class Package(object):
         return available_branches
 
     def cmd_log(self, flags, remote, branch):
+        if remote and branch: self._assert_remote_branch(remote, branch)
         list_args = self._get_args_list(flags)
         if remote and branch:
             list_args += ['%s/%s' % (remote, branch)]
@@ -45,6 +49,7 @@ class Package(object):
         return self.git.status(**flags)
 
     def cmd_diff(self, flags, remote, branch):
+        if remote and branch: self._assert_remote_branch(remote, branch)
         list_args = self._get_args_list(flags)
         if remote and branch:
             list_args += ['%s/%s' % (remote, branch)]
@@ -53,17 +58,15 @@ class Package(object):
         return output
 
     def cmd_pull(self, flags, remote, branch):
-        remote = remote or environ['remote.default']
-        branch = branch or self.get_cur_branch()
-        self._assert_remote_branch(remote, branch)
-
+        cur_remote, cur_branch = self.get_cur_branch()
+        remote, branch = remote or cur_remote, branch or cur_branch
         try:
             if not self._is_behind_commit(remote, branch):
                 output = 'Already up-to-date.'
             else:
                 if self._is_there_local_changes(): stashed = self.git.stash(u=True)
 
-                if branch == self.get_cur_branch():
+                if branch == cur_branch:
                     output = self.git.pull(remote, branch)
                 else:
                     if 'rebase' not in flags:
@@ -75,8 +78,8 @@ class Package(object):
         return output
 
     def cmd_push(self, flags, remote, branch):
-        remote = remote or environ['remote.default']
-        branch = branch or self.get_cur_branch()
+        cur_remote, cur_branch = self.get_cur_branch()
+        remote, branch = remote or cur_remote, branch or cur_branch
         self._assert_remote_branch(remote, branch)
         if 'force' in flags:
             args = self._get_args_list(flags) + [remote, branch]
@@ -94,7 +97,8 @@ class Package(object):
         return output
 
     def cmd_rebase(self, remote, branch):
-        cur_branch = self.get_cur_branch()
+        cur_remote, cur_branch = self.get_cur_branch()
+        remote, branch = remote or cur_remote, branch or cur_branch
         try:
             if self._is_there_local_changes(): stashed = self.git.stash(u=True)
             output = self.git.rebase(remote, branch)

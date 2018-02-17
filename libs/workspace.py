@@ -15,7 +15,7 @@ class Workspace(object):
     ws_src = None
     packages = dict()
 
-    def __init__(self, ws_src):
+    def __init__(self, ws_src, only_local_changes = False, only_no_prod = False, packages = None):
         self.ws_src = ws_src
         self.packages = Workspace.get_packages(ws_src)
 
@@ -103,8 +103,8 @@ class Workspace(object):
         :param flags: list(str)
         :rtype: str
         """
-        remote = environ['master_branch'].split('/')[0] if '/' in environ['master_branch'] else 'origin'
-        branch = environ['master_branch'].split('/')[1] if '/' in environ['master_branch'] else environ['master_branch']
+        remote = environ['prod_branch'].split('/')[0] if '/' in environ['prod_branch'] else 'origin'
+        branch = environ['prod_branch'].split('/')[1] if '/' in environ['prod_branch'] else environ['prod_branch']
         return package.cmd_pull(flags, remote, branch)
 
     def _get_cmd_args(self, parser, flags):
@@ -134,7 +134,7 @@ class Workspace(object):
         # %s (%s)
         ############################
         % s
-        """)) % (package.name, package.get_cur_branch(), output)
+        """)) % (package.name, '/'.join(package.get_cur_branch()), output)
         print("\n")
 
     @staticmethod

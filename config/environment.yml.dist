@@ -1,3 +1,3 @@
 version: 0.1
-master_branch: origin/master
+prod_branch: origin/master
 remote.default: origin
