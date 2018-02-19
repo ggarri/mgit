@@ -16,13 +16,14 @@ class Workspace(object):
     packages = dict()
     git_cmd = None
     git_args = []
+    parser = None
 
     def __init__(self, cwd):
         parser = AppArgsParser.create()
         args, self.git_args = parser.parse_known_args()
         if not args.git_cmd:
             parser.print_help()
-            exit(-1)
+            return
         self.git_cmd = args.git_cmd
         self.workspace = args.ws or cwd
         self.packages = Workspace.get_packages(
@@ -37,7 +38,13 @@ class Workspace(object):
         :param str git_cmd:
         :rtype list(str)
         """
-        if len(self.git_cmd) == 0: return
+        if len(self.packages) == 0:
+            print(Color.red('There is packages selected'))
+            return
+
+        print(Color.yellow('Following git command %s is about to run on:\n'))
+        for package in self.packages: print('   - %s' % package.get_name())
+        # raw_input(Color.green('\n\nPress Enter to continue...'))
 
         for package in self.packages:
             try:
@@ -63,6 +70,7 @@ class Workspace(object):
         if git_cmd == 'diff': return self.run_cmd_diff(package, flags)
         if git_cmd == 'push': return self.run_cmd_push(package, flags)
         if git_cmd == 'commit': return self.run_cmd_commit(package, flags)
+        if git_cmd == 'checkout': return self.run_cmd_checkout(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     def run_cmd_log(self, package, flags):
@@ -121,6 +129,16 @@ class Workspace(object):
         if message and (message[0] == '\'' or message[0] == '\''): message = message[1:]
         if message and (message[-1] == '\'' or message[-1] == '\''): message = message[:-1]
         return package.cmd_commit(args, message)
+
+
+    def run_cmd_checkout(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        args, branch_name = self._get_cmd_args(GitCheckoutParser.create(), flags)
+        return package.cmd_checkout(args, message)
 
     def _get_cmd_args(self, parser, flags):
         """

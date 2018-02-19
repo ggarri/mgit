@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'reset']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod
@@ -10,7 +10,7 @@ class AppArgsParser(ArgumentParser):
         # Define source folder otherwise current folder
         parser.add_argument('--ws', nargs='?', type=str, dest='ws', help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
-        parser.add_argument('--only-local-changes', action='store_true', dest='only_local',
+        parser.add_argument('--only-local', action='store_true', dest='only_local',
                             help='Only use packages with local changes')
         parser.add_argument('--no-prod', action='store_true', dest='no_prod',
                             help='Only use packages on prod(%s) branch' % str(environ.get('prod_branch')))
@@ -72,5 +72,14 @@ class GitCommitParser(ArgumentParser):
     def create():
         parser = GitCommitParser(description='"git commit" arguments', prog='Git commit')
         parser.add_argument('-a', dest='-a', action='store_true', required=False, help="Adding new files")
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitCheckoutParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitCheckoutParser(description='"git checkout" arguments', prog='Git checkout')
+        parser.add_argument('-b', dest='-b', action='store_true', required=False, help="Create new branch")
+        parser.add_argument('--upstream', dest='upstream', action='store_true', required=False, help="Set upstream")
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser

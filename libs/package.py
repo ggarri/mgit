@@ -108,6 +108,11 @@ class Package(object):
 
         return output
 
+
+    def cmd_checkout(self, flags, message):
+        # TODO
+        pass
+
     def cmd_rebase(self, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
