@@ -107,7 +107,7 @@ class Workspace(object):
         message = ' '.join(message) if message else None
         if message and (message[0] == '\'' or message[0] == '\''): message = message[1:]
         if message and (message[-1] == '\'' or message[-1] == '\''): message = message[:-1]
-        return package.cmd_commit(args, ' '.join(message) if message else None)
+        return package.cmd_commit(args, message)
 
     def _get_cmd_args(self, parser, flags):
         """
