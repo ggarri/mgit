@@ -28,6 +28,7 @@ class Workspace(object):
         self.workspace = args.ws or cwd
         self.packages = Workspace.get_packages(
             self.workspace,
+            all_packages=args.all_packages,
             only_local_changes = args.only_local,
             only_no_prod = args.no_prod,
             package_names = (args.packages or list())
@@ -42,7 +43,7 @@ class Workspace(object):
             print(Color.red('There is packages selected'))
             return
 
-        print(Color.yellow('Following git command %s is about to run on:\n'))
+        print(Color.yellow('Following command "git %s" is about to run on:\n' % self.git_cmd))
         for package in self.packages: print('   - %s' % package.get_name())
         # raw_input(Color.green('\n\nPress Enter to continue...'))
 
@@ -174,7 +175,7 @@ class Workspace(object):
         print("\n")
 
     @staticmethod
-    def get_packages(src, only_local_changes, only_no_prod, package_names):
+    def get_packages(src, all_packages, only_local_changes, only_no_prod, package_names):
         """
         :param string src: Source path
         :param bool only_local_changes:
@@ -185,7 +186,7 @@ class Workspace(object):
         folders = [path.join(src, f) for f in listdir(path.join(src)) if not path.isfile(path.join(src, f))]
         packages = [Package(pf) for pf in folders if path.isdir(path.join(pf, '.git'))]
         return [package for package in packages
-                if (not (only_local_changes or only_no_prod or package_names))
+                if all_packages
                 or (only_local_changes and package._has_local_changes())
                 or (packages and package.get_name() in package_names)
                 or (only_no_prod and package.get_cur_remote_branch(True) != environ['prod_branch'])]

@@ -12,6 +12,8 @@ class AppArgsParser(ArgumentParser):
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
         parser.add_argument('--only-local', action='store_true', dest='only_local',
                             help='Only use packages with local changes')
+        parser.add_argument('--all', action='store_true', dest='all_packages',
+                            help='use all packages')
         parser.add_argument('--no-prod', action='store_true', dest='no_prod',
                             help='Only use packages on prod(%s) branch' % str(environ.get('prod_branch')))
         parser.add_argument('--packages', type=str, nargs='+', required=False, dest='packages',
