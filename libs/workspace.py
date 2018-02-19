@@ -12,23 +12,36 @@ class Workspace(object):
     """
     :type package: list<Package>
     """
-    ws_src = None
+    workspace = None
     packages = dict()
+    git_cmd = None
+    git_args = []
 
-    def __init__(self, ws_src, only_local_changes = False, only_no_prod = False, packages = None):
-        self.ws_src = ws_src
-        self.packages = Workspace.get_packages(ws_src)
+    def __init__(self, cwd):
+        parser = AppArgsParser.create()
+        args, self.git_args = parser.parse_known_args()
+        if not args.git_cmd:
+            parser.print_help()
+            exit(-1)
+        self.git_cmd = args.git_cmd
+        self.workspace = args.ws or cwd
+        self.packages = Workspace.get_packages(
+            self.workspace,
+            only_local_changes = args.only_local,
+            only_no_prod = args.no_prod,
+            package_names = (args.packages or list())
+        )
 
-    def run(self, git_cmd, git_args):
+    def run(self):
         """
         :param str git_cmd:
         :rtype list(str)
         """
-        if len(git_cmd) == 0: return
+        if len(self.git_cmd) == 0: return
 
         for package in self.packages:
             try:
-                output = self.run_cmd(package, git_cmd, git_args)
+                output = self.run_cmd(package, self.git_cmd, self.git_args)
             except GitCommandError as e:
                 output = Color.red(e.stderr or e.stdout)
             except ValueError as e:
@@ -139,10 +152,22 @@ class Workspace(object):
         # %s (%s)
         ############################
         % s
-        """)) % (package.name, '/'.join(package.get_cur_branch()), output)
+        """)) % (package.name, '/'.join(package.get_cur_remote_branch()), output)
         print("\n")
 
     @staticmethod
-    def get_packages(src):
+    def get_packages(src, only_local_changes, only_no_prod, package_names):
+        """
+        :param string src: Source path
+        :param bool only_local_changes:
+        :param book only_no_prod:
+        :param list(string) packages:
+        :return:
+        """
         folders = [path.join(src, f) for f in listdir(path.join(src)) if not path.isfile(path.join(src, f))]
-        return [Package(pf) for pf in folders if path.isdir(path.join(pf, '.git'))]
+        packages = [Package(pf) for pf in folders if path.isdir(path.join(pf, '.git'))]
+        return [package for package in packages
+                if (not (only_local_changes or only_no_prod or package_names))
+                or (only_local_changes and package._has_local_changes())
+                or (packages and package.get_name() in package_names)
+                or (only_no_prod and package.get_cur_remote_branch(True) != environ['prod_branch'])]

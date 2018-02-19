@@ -16,7 +16,7 @@ class Package(object):
         self.repo = Repo(location)
         self.git = self.repo.git
 
-    def get_cur_branch(self):
+    def get_cur_remote_branch(self, joint = False):
         if self.repo.head.is_detached: return "Branch detached"
         try:
             branch = self.repo.head.reference.name
@@ -24,10 +24,14 @@ class Package(object):
         except TypeError:
             return "Branch detached"
         else:
+            if joint: return '/'.join([remote, branch])
             return remote, branch
 
     def get_available_remotes(self):
         return [remote.name for remote in self.repo.remotes]
+
+    def get_name(self):
+        return self.name
 
     def get_available_remote_branches(self, remote_name):
         available_branches = []
@@ -58,13 +62,13 @@ class Package(object):
         return output
 
     def cmd_pull(self, flags, remote, branch):
-        cur_remote, cur_branch = self.get_cur_branch()
+        cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
         try:
             if not self._is_behind_commit(remote, branch):
                 output = 'Already up-to-date.'
             else:
-                if self._is_there_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
+                if self._has_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
                 if branch == cur_branch:
                     output = self.git.pull(remote, branch)
                 else:
@@ -77,7 +81,7 @@ class Package(object):
         return output
 
     def cmd_push(self, flags, remote, branch):
-        cur_remote, cur_branch = self.get_cur_branch()
+        cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
         self._assert_remote_branch(remote, branch)
         if 'force' in flags:
@@ -96,7 +100,7 @@ class Package(object):
 
     def cmd_commit(self, flags, message):
         if not message: output = Color.red('Commit message cannot be empty')
-        elif not self._is_there_local_changes(): output = Color.yellow('There is not local changes')
+        elif not self._has_local_changes(): output = Color.yellow('There is not local changes')
         else:
             flags['-m'] = message
             args = self._get_args_list(flags)
@@ -105,10 +109,10 @@ class Package(object):
         return output
 
     def cmd_rebase(self, remote, branch):
-        cur_remote, cur_branch = self.get_cur_branch()
+        cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
         try:
-            if self._is_there_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
+            if self._has_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
             output = self.git.rebase('%s/%s'%(remote,branch))
         except GitCommandError as e:
             self.git.rebase(abort=True)
@@ -131,7 +135,7 @@ class Package(object):
         remote_commits = self.git.log(*['--oneline', '%s/%s..HEAD' % (remote, branch)])
         return len(remote_commits) > 0
 
-    def _is_there_local_changes(self):
+    def _has_local_changes(self):
         local_diff = self.git.status(porcelain=True).split('\n')
         diffs = [diff for diff in local_diff if diff]
         return len(diffs) > 0

@@ -8,12 +8,11 @@ class AppArgsParser(ArgumentParser):
     def create():
         parser = AppArgsParser(description='MGit arguments description.', prog='MultiGit')
         # Define source folder otherwise current folder
-        parser.add_argument('--ws', nargs='?', type=str, dest='workspace',
-                            help='workspace folder')
+        parser.add_argument('--ws', nargs='?', type=str, dest='ws', help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
-        parser.add_argument('--only-local-changes', type=bool, required=False, dest='only-local-change',
+        parser.add_argument('--only-local-changes', action='store_true', dest='only_local',
                             help='Only use packages with local changes')
-        parser.add_argument('--no-prod', type=bool, required=False, dest='no-prod',
+        parser.add_argument('--no-prod', action='store_true', dest='no_prod',
                             help='Only use packages on prod(%s) branch' % str(environ.get('prod_branch')))
         parser.add_argument('--packages', type=str, nargs='+', required=False, dest='packages',
                             help='List of packages to use')
