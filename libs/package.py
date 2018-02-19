@@ -94,6 +94,16 @@ class Package(object):
 
         return output
 
+    def cmd_commit(self, flags, message):
+        if not message: output = Color.red('Commit message cannot be empty')
+        elif not self._is_there_local_changes(): output = Color.yellow('There is not local changes')
+        else:
+            flags['-m'] = message
+            args = self._get_args_list(flags)
+            output = Color.green(self.git.commit(args))
+
+        return output
+
     def cmd_rebase(self, remote, branch):
         cur_remote, cur_branch = self.get_cur_branch()
         remote, branch = remote or cur_remote, branch or cur_branch

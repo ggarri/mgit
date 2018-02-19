@@ -61,9 +61,17 @@ class GitPullParser(ArgumentParser):
 class GitPushParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitPullParser(description='"git pull" arguments', prog='Git Pull')
+        parser = GitPushParser(description='"git pull" arguments', prog='Git Pull')
         parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
                             help='Include git --rebase action')
         parser.add_argument('--force', dest='force', action='store_true', required=False,
                             help='Include git --force action')
+        return parser
+
+class GitCommitParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitCommitParser(description='"git commit" arguments', prog='Git commit')
+        parser.add_argument('-a', dest='-a', action='store_true', required=False, help="Adding new files")
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
