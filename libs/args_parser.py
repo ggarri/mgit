@@ -6,7 +6,7 @@ available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'che
 class AppArgsParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = AppArgsParser(description='MGit arguments description.', prog='MultiGit')
+        parser = AppArgsParser(description='MGit arguments description.', prog='mgit')
         # Define source folder otherwise current folder
         parser.add_argument('--ws', nargs='?', type=str, dest='ws', help='workspace folder')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + str(environ.get('version')))
@@ -25,7 +25,7 @@ class AppArgsParser(ArgumentParser):
 class GitLogParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitLogParser(description='"git log" arguments ', prog='Git Log')
+        parser = GitLogParser(description='"git log" arguments ', prog='mgit Log')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         parser.add_argument('-n', type=int, dest='-n', default=5)
         parser.add_argument('--oneline', type=bool, required=False, dest='oneline')
@@ -38,14 +38,14 @@ class GitLogParser(ArgumentParser):
 class GitStatusParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitStatusParser(description='"git status" arguments', prog='Git Status')
+        parser = GitStatusParser(description='"git status" arguments', prog='mgit Status')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
 
 class GitDiffParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitDiffParser(description='"git pull" arguments', prog='Git Pull')
+        parser = GitDiffParser(description='"git pull" arguments', prog='mgit Pull')
         parser.add_argument('--color', type=str, default='always')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
@@ -53,7 +53,7 @@ class GitDiffParser(ArgumentParser):
 class GitPullParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitPullParser(description='"git pull" arguments', prog='Git Pull')
+        parser = GitPullParser(description='"git pull" arguments', prog='mgit Pull')
         parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
                             help='Include git --rebase action')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
@@ -62,7 +62,7 @@ class GitPullParser(ArgumentParser):
 class GitPushParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitPushParser(description='"git pull" arguments', prog='Git Pull')
+        parser = GitPushParser(description='"git pull" arguments', prog='mgit Pull')
         parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
                             help='Include git --rebase action')
         parser.add_argument('--force', dest='force', action='store_true', required=False,
@@ -72,7 +72,7 @@ class GitPushParser(ArgumentParser):
 class GitCommitParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitCommitParser(description='"git commit" arguments', prog='Git commit')
+        parser = GitCommitParser(description='"git commit" arguments', prog='mgit commit')
         parser.add_argument('-a', dest='-a', action='store_true', required=False, help="Adding new files")
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
@@ -80,7 +80,7 @@ class GitCommitParser(ArgumentParser):
 class GitCheckoutParser(ArgumentParser):
     @staticmethod
     def create():
-        parser = GitCheckoutParser(description='"git checkout" arguments', prog='Git checkout')
+        parser = GitCheckoutParser(description='"git checkout" arguments', prog='mgit checkout')
         parser.add_argument('-b', dest='-b', action='store_true', required=False, help="Create new branch")
         parser.add_argument('--upstream', dest='upstream', action='store_true', required=False, help="Set upstream")
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')

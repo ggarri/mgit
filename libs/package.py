@@ -33,6 +33,9 @@ class Package(object):
     def get_name(self):
         return self.name
 
+    def get_available_local_branches(self):
+        return [branch.name for branch in self.repo.branches]
+
     def get_available_remote_branches(self, remote_name):
         available_branches = []
         for remote in self.repo.remotes:
@@ -92,7 +95,8 @@ class Package(object):
             output = Color.yellow('Nothing to commit')
         else:
             if self._is_behind_commit(remote, branch):
-                if 'rebase' not in flags: raise ValueError('Merge is not allowed. You need to use --rebase to push')
+                if 'rebase' not in flags:
+                    raise ValueError('Merge is not allowed. You need to use --rebase to push')
                 self.cmd_rebase(remote, branch)
             output = Color.green(self.git.push(remote, branch) or 'Push completed')
 
@@ -110,8 +114,19 @@ class Package(object):
 
 
     def cmd_checkout(self, flags, branch_name):
-        # TODO
-        pass
+        available_branches = self.get_available_local_branches()
+        if not branch_name:
+            raise ValueError('Branch name missing')
+        if '-b' in flags:
+            if branch_name in available_branches:
+                raise ValueError('Failing creating branch "%s". Already exists' % branch_name)
+            args = self._get_args_list(flags) + [branch_name]
+            output = self.git.checkout(args)
+        if not '-b' in flags:
+            if branch_name not in available_branches:
+                raise ValueError('Branch "%s" does not exists.' % branch_name)
+            output = self.git.checkout(branch_name)
+        return Color.green(output)
 
     def cmd_rebase(self, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
