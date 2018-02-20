@@ -138,8 +138,9 @@ class Workspace(object):
         :param flags: list(str)
         :rtype: str
         """
-        args, branch_name = self._get_cmd_args(GitCheckoutParser.create(), flags)
-        return package.cmd_checkout(args, message)
+        args, remote_branch = self._get_cmd_args(GitCheckoutParser.create(), flags)
+        branch_name = remote_branch[1]
+        return package.cmd_checkout(args, branch_name)
 
     def _get_cmd_args(self, parser, flags):
         """

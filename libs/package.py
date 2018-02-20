@@ -109,7 +109,7 @@ class Package(object):
         return output
 
 
-    def cmd_checkout(self, flags, message):
+    def cmd_checkout(self, flags, branch_name):
         # TODO
         pass
 
