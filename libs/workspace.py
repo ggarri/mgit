@@ -40,8 +40,8 @@ class Workspace(object):
         :rtype list(str)
         """
         if len(self.packages) == 0:
-            print(Color.red('There is packages selected'))
-            return
+            print(Color.red('There is not packages selected'))
+            exit(-1)
 
         print(Color.yellow('Following command "git %s" is about to run on:\n' % self.git_cmd))
         for package in self.packages: print('   - %s' % package.get_name())
@@ -168,12 +168,13 @@ class Workspace(object):
         :param str output:
         :return:
         """
+        cur_remote, cur_branch = package.get_cur_remote_branch()
         print(inspect.cleandoc("""
         ############################
         # %s (%s)
         ############################
         % s
-        """)) % (package.name, '/'.join(package.get_cur_remote_branch()), output)
+        """)) % (package.name, '/'.join(cur_branch), output)
         print("\n")
 
     @staticmethod

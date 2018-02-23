@@ -86,11 +86,17 @@ class Package(object):
     def cmd_push(self, flags, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
-        self._assert_remote_branch(remote, branch)
+        available_remotes = self.get_available_remotes()
+        if remote not in available_remotes:
+            raise ValueError('Remote "%s" does not exists' % remote)
+
+        available_branch = self.get_available_remote_branches(remote)
         if 'force' in flags:
             args = self._get_args_list(flags) + [remote, branch]
             self.git.push(args)
             output = Color.green('Push --force completed')
+        elif branch not in available_branch:
+            output = Color.green(self.git.push(remote, branch) or 'Push completed (New Branch)')
         elif not self._is_ahead_commit(remote, branch):
             output = Color.yellow('Nothing to commit')
         else:
