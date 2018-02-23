@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod
@@ -84,4 +84,11 @@ class GitCheckoutParser(ArgumentParser):
         parser.add_argument('-b', dest='-b', action='store_true', required=False, help="Create new branch")
         parser.add_argument('--upstream', dest='upstream', action='store_true', required=False, help="Set upstream")
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitCleanParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitCleanParser(description='"git branch -D {branch}; git push {remote} :{branch}" arguments',
+                                   prog='mgit clean')
         return parser

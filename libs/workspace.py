@@ -72,6 +72,7 @@ class Workspace(object):
         if git_cmd == 'push': return self.run_cmd_push(package, flags)
         if git_cmd == 'commit': return self.run_cmd_commit(package, flags)
         if git_cmd == 'checkout': return self.run_cmd_checkout(package, flags)
+        if git_cmd == 'clean': return self.run_cmd_clean(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     def run_cmd_log(self, package, flags):
@@ -143,6 +144,17 @@ class Workspace(object):
         branch_name = remote_branch[1]
         return package.cmd_checkout(args, branch_name)
 
+
+    def run_cmd_clean(self, package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        parser = GitCheckoutParser.create()
+        args, remote_branch = self._get_cmd_args(parser, flags)
+        return package.cmd_clean(remote_branch[0], remote_branch[1])
+
     def _get_cmd_args(self, parser, flags):
         """
         :param parser: ArgumentParser
@@ -174,7 +186,7 @@ class Workspace(object):
         # %s (%s)
         ############################
         % s
-        """)) % (package.name, '/'.join(cur_branch), output)
+        """)) % (package.name, cur_branch, output)
         print("\n")
 
     @staticmethod
@@ -188,6 +200,10 @@ class Workspace(object):
         """
         folders = [path.join(src, f) for f in listdir(path.join(src)) if not path.isfile(path.join(src, f))]
         packages = [Package(pf) for pf in folders if path.isdir(path.join(pf, '.git'))]
+        if len(packages) == 0:
+            print(Color.red('Empty workspace. None found `./*/.git` folders'))
+            exit(-1)
+
         return [package for package in packages
                 if all_packages
                 or (only_local_changes and package._has_local_changes())

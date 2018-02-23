@@ -134,6 +134,31 @@ class Package(object):
             output = self.git.checkout(branch_name)
         return Color.green(output)
 
+    def cmd_clean(self, remote, branch):
+        available_branches = self.get_available_local_branches()
+        cur_remote, cur_branch = self.get_cur_remote_branch()
+        if cur_branch == branch:
+            raise ValueError('Cannot remove branch in use "%s"' % branch)
+
+        if branch not in available_branches:
+            output = Color.yellow('Branch "%s" was not found' % branch)
+        else:
+            self.git.branch(['-D', branch])
+            output = Color.green('Branch "%s" was removed' % branch)
+
+        if not remote: return output
+
+        available_remotes = self.get_available_remotes()
+        if remote not in available_remotes:
+            raise ValueError('Remote "%s" was not found' % remote)
+        available_remote_branches = self.get_available_remote_branches(remote)
+        if branch in available_remote_branches:
+            self.git.push([remote, ':'+branch])
+            output += "\n" + Color.green('Remove branch "%s/%s" removed' % (remote, branch))
+        else:
+            output += "\n" + Color.yellow('Remote branch "%s/%s" not found' % (remote, branch))
+        return output
+
     def cmd_rebase(self, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
