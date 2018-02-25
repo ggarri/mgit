@@ -121,7 +121,10 @@ class Package(object):
         return output
 
     def cmd_bash(self, bash_cmd):
-        return subprocess.check_output(bash_cmd.split(' '))
+        try:
+            return subprocess.check_output(bash_cmd.split(' '))
+        except OSError as e:
+            return Color.red(e.strerror)
 
     def cmd_checkout(self, flags, branch_name):
         available_branches = self.get_available_local_branches()
