@@ -81,8 +81,8 @@ class Workspace(object):
         # raw_input(Color.green('\n\nPress Enter to continue...'))
 
         for package in self.packages:
+            pool_packages.add(package.get_name())
             if self.pool:
-                pool_packages.add(package.get_name())
                 self.pool.apply_async(execute_package, [package, self.git_cmd, self.git_args],
                                       callback=lambda output, package=package: competed_package(package, output))
             else:
@@ -118,6 +118,7 @@ class Workspace(object):
         if git_cmd == 'commit': return Workspace.run_cmd_commit(package, flags)
         if git_cmd == 'checkout': return Workspace.run_cmd_checkout(package, flags)
         if git_cmd == 'clean': return Workspace.run_cmd_clean(package, flags)
+        if git_cmd == 'bash': return Workspace.run_cmd_bash(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     @staticmethod
@@ -184,6 +185,16 @@ class Workspace(object):
         return package.cmd_commit(args, message)
 
     @staticmethod
+    def run_cmd_bash(package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        bash_cmd = Workspace._get_cmd_args(GitBashParser.create(), flags)
+        return package.cmd_bash(bash_cmd)
+
+    @staticmethod
     def run_cmd_checkout(package, flags):
         """
         :param package: Package
@@ -216,6 +227,8 @@ class Workspace(object):
         args, unknown = parser.parse_known_args(flags)
         filter_args = dict((k, v) for k, v in vars(args).iteritems() if v)
 
+        if isinstance(parser, GitBashParser):
+            return unknown[0]
         if isinstance(parser, GitCommitParser) or isinstance(parser, GitStatusParser):
             return filter_args, unknown
 

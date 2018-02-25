@@ -1,7 +1,9 @@
+import subprocess
+
 from git import Repo, GitCommandError
 from git.cmd import Git
 from helpers import Color
-from os import path, environ
+from os import path
 
 
 class Package(object):
@@ -118,6 +120,8 @@ class Package(object):
 
         return output
 
+    def cmd_bash(self, bash_cmd):
+        return subprocess.check_output(bash_cmd.split(' '))
 
     def cmd_checkout(self, flags, branch_name):
         available_branches = self.get_available_local_branches()

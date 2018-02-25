@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean', 'bash']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod
@@ -74,6 +74,13 @@ class GitCommitParser(ArgumentParser):
     def create():
         parser = GitCommitParser(description='"git commit" arguments', prog='mgit commit')
         parser.add_argument('-a', dest='-a', action='store_true', required=False, help="Adding new files")
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitBashParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitBashParser(description='"bash" command', prog='mgit bash')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
 
