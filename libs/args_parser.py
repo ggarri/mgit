@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean', 'bash']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean', 'bash', 'reset']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod
@@ -98,4 +98,13 @@ class GitCleanParser(ArgumentParser):
     def create():
         parser = GitCleanParser(description='"git branch -D {branch}; git push {remote} :{branch}" arguments',
                                    prog='mgit clean')
+        return parser
+
+class GitResetParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitResetParser(description='"git reset" arguments', prog='mgit reset')
+        parser.add_argument('--hard', dest='hard', action='store_true', required=False, help="Reset soft")
+        parser.add_argument('--soft', dest='soft', action='store_true', required=False, help="Reset hard")
+        parser.add_argument('--stash', dest='stash', action='store_true', required=False, help="Stash local changes")
         return parser

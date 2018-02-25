@@ -119,6 +119,7 @@ class Workspace(object):
         if git_cmd == 'checkout': return Workspace.run_cmd_checkout(package, flags)
         if git_cmd == 'clean': return Workspace.run_cmd_clean(package, flags)
         if git_cmd == 'bash': return Workspace.run_cmd_bash(package, flags)
+        if git_cmd == 'reset': return Workspace.run_cmd_reset(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     @staticmethod
@@ -216,6 +217,17 @@ class Workspace(object):
         parser = GitCheckoutParser.create()
         args, remote_branch = Workspace._get_cmd_args(parser, flags)
         return package.cmd_clean(remote_branch[0], remote_branch[1])
+
+    @staticmethod
+    def run_cmd_reset(package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        parser = GitResetParser.create()
+        args, remote_branch = Workspace._get_cmd_args(parser, flags)
+        return package.cmd_reset(args, remote_branch[0], remote_branch[1])
 
     @staticmethod
     def _get_cmd_args(parser, flags):

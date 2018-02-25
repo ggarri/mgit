@@ -141,6 +141,23 @@ class Package(object):
             output = self.git.checkout(branch_name)
         return Color.green(output)
 
+    def cmd_reset(self, flags, remote, branch):
+        try:
+            if 'stash' in flags and self._has_local_changes(): stashed = self.git.stash(u=True)
+            if 'soft' in flags:
+                args = ['--soft'] + ([branch] if remote is None else [remote + '/' + branch])
+                self.git.reset(args)
+                output = Color.green('Reset soft was executed on %s' % (branch if remote is None else remote+'/'+branch))
+            elif 'hard' in flags:
+                args = ['--hard'] + ([branch] if remote is None else [remote + '/' + branch])
+                output = Color.green(self.git.reset(args))
+            else: raise ValueError('Invalid mode')
+        finally:
+            if 'stashed' in locals() and stashed: self.git.stash('pop')
+
+
+        return output
+
     def cmd_clean(self, remote, branch):
         available_branches = self.get_available_local_branches()
         cur_remote, cur_branch = self.get_cur_remote_branch()
