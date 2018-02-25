@@ -1,31 +1,63 @@
 import traceback
 from os import path, listdir
+import time
+import inspect
 
 from git import GitCommandError
 
 from helpers import Color
 from .package import Package
 from libs.args_parser import *
-import inspect
+
+pool_packages = set()
+
+def execute_package(package, git_cmd, git_args):
+    """
+    :param Package package:
+    :param str git_cmd:
+    :param list git_args:
+    :rtype str:
+    """
+    try:
+        output = Workspace.run_cmd(package, git_cmd, git_args)
+    except GitCommandError as e:
+        output = Color.red(e.stderr or e.stdout)
+    except ValueError as e:
+        output = Color.red(e.message)
+    except:
+        output = Color.red(traceback.format_exc())
+    return output
+
+def competed_package(package, output):
+    """
+    :param Package package:
+    :param str output:
+    """
+    pool_packages.remove(package.get_name())
+    Workspace._print_cmd_output(package, output)
+
+
 
 class Workspace(object):
     """
-    :type package: list<Package>
+    :type packages: list<Package>
+    :type pool: multiprocessing.Pool
     """
     workspace = None
+    pool = None
     packages = dict()
     git_cmd = None
     git_args = []
     parser = None
 
-    def __init__(self, cwd):
+    def __init__(self, cwd, pool = None):
         parser = AppArgsParser.create()
         args, self.git_args = parser.parse_known_args()
-        if not args.git_cmd:
-            parser.print_help()
-            return
+        if not args.git_cmd: parser.print_help(); return
+
         self.git_cmd = args.git_cmd
         self.workspace = args.ws or cwd
+        self.pool = pool
         self.packages = Workspace.get_packages(
             self.workspace,
             all_packages=args.all_packages,
@@ -43,119 +75,139 @@ class Workspace(object):
             print(Color.red('There is not packages selected'))
             exit(-1)
 
+        global pool_packages
         print(Color.yellow('Following command "git %s" is about to run on:\n' % self.git_cmd))
-        for package in self.packages: print('   - %s' % package.get_name())
+        for package in self.packages: print("\t" + package.get_name())
         # raw_input(Color.green('\n\nPress Enter to continue...'))
 
         for package in self.packages:
-            try:
-                output = self.run_cmd(package, self.git_cmd, self.git_args)
-            except GitCommandError as e:
-                output = Color.red(e.stderr or e.stdout)
-            except ValueError as e:
-                output = Color.red(e.message)
-            except:
-                output = Color.red(traceback.format_exc())
-            self._print_cmd_output(package, output)
+            if self.pool:
+                pool_packages.add(package.get_name())
+                self.pool.apply_async(execute_package, [package, self.git_cmd, self.git_args],
+                                      callback=lambda output, package=package: competed_package(package, output))
+            else:
+                output = execute_package(package, self.git_cmd, self.git_args)
+                competed_package(package, output)
 
-    def run_cmd(self, package, git_cmd, flags):
+        if not self.pool: return
+
+        try:
+            while len(pool_packages):
+                print "Waiting packages: %s" % str(pool_packages)
+                time.sleep(1)
+        except KeyboardInterrupt: terminate = True; print "Interrupt!!!"
+        else: terminate = False;
+
+        if terminate: self.pool.terminate()
+        print "Waiting threads to complete"; self.pool.close()
+        print "Waiting threads to wrap-up"; self.pool.join()
+
+    @staticmethod
+    def run_cmd(package, git_cmd, flags):
         """
         :param package: Package
         :param git_cmd: str
         :param flags: str
         :rtype: str
         """
-        if git_cmd == 'log': return self.run_cmd_log(package, flags)
-        if git_cmd == 'pull': return self.run_cmd_pull(package, flags)
-        if git_cmd == 'status': return self.run_cmd_status(package, flags)
-        if git_cmd == 'diff': return self.run_cmd_diff(package, flags)
-        if git_cmd == 'push': return self.run_cmd_push(package, flags)
-        if git_cmd == 'commit': return self.run_cmd_commit(package, flags)
-        if git_cmd == 'checkout': return self.run_cmd_checkout(package, flags)
-        if git_cmd == 'clean': return self.run_cmd_clean(package, flags)
+        if git_cmd == 'log': return Workspace.run_cmd_log(package, flags)
+        if git_cmd == 'pull': return Workspace.run_cmd_pull(package, flags)
+        if git_cmd == 'status': return Workspace.run_cmd_status(package, flags)
+        if git_cmd == 'diff': return Workspace.run_cmd_diff(package, flags)
+        if git_cmd == 'push': return Workspace.run_cmd_push(package, flags)
+        if git_cmd == 'commit': return Workspace.run_cmd_commit(package, flags)
+        if git_cmd == 'checkout': return Workspace.run_cmd_checkout(package, flags)
+        if git_cmd == 'clean': return Workspace.run_cmd_clean(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
-    def run_cmd_log(self, package, flags):
+    @staticmethod
+    def run_cmd_log(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, remote_branch = self._get_cmd_args(GitLogParser.create(), flags)
+        args, remote_branch = Workspace._get_cmd_args(GitLogParser.create(), flags)
         return package.cmd_log(args, remote_branch[0], remote_branch[1])
 
-    def run_cmd_status(self, package, flags):
+    @staticmethod
+    def run_cmd_status(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, unknown = self._get_cmd_args(GitStatusParser.create(), flags)
+        args, unknown = Workspace._get_cmd_args(GitStatusParser.create(), flags)
         return package.cmd_status(args)
 
-    def run_cmd_diff(self, package, flags):
+    @staticmethod
+    def run_cmd_diff(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, remote_branch = self._get_cmd_args(GitDiffParser.create(), flags)
+        args, remote_branch = Workspace._get_cmd_args(GitDiffParser.create(), flags)
         return package.cmd_diff(args, remote_branch[0], remote_branch[1])
 
-    def run_cmd_pull(self, package, flags):
+    @staticmethod
+    def run_cmd_pull(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, remote_branch = self._get_cmd_args(GitPullParser.create(), flags)
+        args, remote_branch = Workspace._get_cmd_args(GitPullParser.create(), flags)
         return package.cmd_pull(args, remote_branch[0], remote_branch[1])
 
-    def run_cmd_push(self, package, flags):
+    @staticmethod
+    def run_cmd_push(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, remote_branch = self._get_cmd_args(GitPushParser.create(), flags)
+        args, remote_branch = Workspace._get_cmd_args(GitPushParser.create(), flags)
         return package.cmd_push(args, remote_branch[0], remote_branch[1])
 
-    def run_cmd_commit(self, package, flags):
+    @staticmethod
+    def run_cmd_commit(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
-        args, message = self._get_cmd_args(GitCommitParser.create(), flags)
+        args, message = Workspace._get_cmd_args(GitCommitParser.create(), flags)
         message = ' '.join(message) if message else None
         if message and (message[0] == '\'' or message[0] == '\''): message = message[1:]
         if message and (message[-1] == '\'' or message[-1] == '\''): message = message[:-1]
         return package.cmd_commit(args, message)
 
-
-    def run_cmd_checkout(self, package, flags):
+    @staticmethod
+    def run_cmd_checkout(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
         parser = GitCheckoutParser.create()
-        args, remote_branch = self._get_cmd_args(parser, flags)
+        args, remote_branch = Workspace._get_cmd_args(parser, flags)
         branch_name = remote_branch[1]
         return package.cmd_checkout(args, branch_name)
 
-
-    def run_cmd_clean(self, package, flags):
+    @staticmethod
+    def run_cmd_clean(package, flags):
         """
         :param package: Package
         :param flags: list(str)
         :rtype: str
         """
         parser = GitCheckoutParser.create()
-        args, remote_branch = self._get_cmd_args(parser, flags)
+        args, remote_branch = Workspace._get_cmd_args(parser, flags)
         return package.cmd_clean(remote_branch[0], remote_branch[1])
 
-    def _get_cmd_args(self, parser, flags):
+    @staticmethod
+    def _get_cmd_args(parser, flags):
         """
         :param parser: ArgumentParser
         :param flags: str
@@ -174,7 +226,8 @@ class Workspace(object):
             else: branch = unknown[0]
         return filter_args, [remote, branch]
 
-    def _print_cmd_output(self, package, output):
+    @staticmethod
+    def _print_cmd_output(package, output):
         """
         :param Package package:
         :param str output:

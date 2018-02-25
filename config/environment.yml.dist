@@ -1,3 +1,4 @@
 version: 0.1
 prod_branch: origin/master
 remote.default: origin
+n_cpu: False
