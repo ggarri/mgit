@@ -122,7 +122,7 @@ class Package(object):
 
     def cmd_bash(self, bash_cmd):
         try:
-            return subprocess.check_output(bash_cmd.split(' '))
+            return subprocess.check_output('cd %s; %s ;cd -' % (self.location, bash_cmd), shell=True)
         except OSError as e:
             return Color.red(e.strerror)
 
