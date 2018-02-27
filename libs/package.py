@@ -136,15 +136,14 @@ class Package(object):
 
     def cmd_checkout(self, flags, branch_name, from_branch=None):
         available_branches = self.get_available_local_branches()
-        if not branch_name:
-            raise ValueError('Branch name missing')
+        if not branch_name: raise ValueError('Branch name missing')
         if '-b' in flags:
             if branch_name in available_branches:
                 raise ValueError('Failing creating branch "%s". Already exists' % branch_name)
             self.git.checkout(['-b', flags['-b'] ,from_branch])
             output = Color.green(('New branch %s created' % flags['-b']) +
                                  (' from %s' % from_branch if from_branch else ''))
-        if not '-b' in flags:
+        else:
             if from_branch: raise ValueError('Invalid syntax')
             if branch_name not in available_branches:
                 raise ValueError('Branch "%s" does not exists.' % branch_name)
