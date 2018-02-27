@@ -215,8 +215,12 @@ class Workspace(object):
         """
         parser = GitCheckoutParser.create()
         args, remote_branch = Workspace._get_cmd_args(parser, flags)
-        branch_name = remote_branch[1]
-        return package.cmd_checkout(args, branch_name)
+        if '-b' in args:
+            remote_name, branch_name = remote_branch[0], remote_branch[1]
+            _from = ('%s/%s'%(remote_name, branch_name)) if remote_name else branch_name
+            return package.cmd_checkout(args, branch_name=args['-b'], from_branch=_from)
+        else:
+            return package.cmd_checkout(args, branch_name=remote_branch[1])
 
     @staticmethod
     def run_cmd_clean(package, flags):

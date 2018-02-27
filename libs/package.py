@@ -46,10 +46,12 @@ class Package(object):
         return available_branches
 
     def cmd_log(self, flags, remote, branch):
-        if remote and branch: self._assert_remote_branch(remote, branch)
+        cur_remote, cur_branch = self.get_cur_remote_branch()
+        branch = branch or cur_branch
+        self._assert_remote_branch(remote, branch)
         list_args = self._get_args_list(flags)
-        if remote and branch:
-            list_args += ['%s/%s' % (remote, branch)]
+        if remote: list_args += ['%s/%s' % (remote, branch)]
+        else: list_args += [branch]
         output = self.git.log(list_args)
         if not output: output = Color.yellow("There is not changes")
         return output
@@ -58,10 +60,12 @@ class Package(object):
         return self.git.status(**flags)
 
     def cmd_diff(self, flags, remote, branch):
-        if remote and branch: self._assert_remote_branch(remote, branch)
+        cur_remote, cur_branch = self.get_cur_remote_branch()
+        branch = branch or cur_branch
+        self._assert_remote_branch(remote, branch)
         list_args = self._get_args_list(flags)
-        if remote and branch:
-            list_args += ['%s/%s' % (remote, branch)]
+        if remote: list_args += ['%s/%s' % (remote, branch)]
+        else: list_args += [branch]
         output = self.git.diff(*list_args)
         if not output: output = Color.yellow("There is not changes")
         return output
@@ -69,6 +73,7 @@ class Package(object):
     def cmd_pull(self, flags, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
+        self._assert_remote_branch(remote, branch)
         try:
             if not self._is_behind_commit(remote, branch):
                 output = 'Already up-to-date.'
@@ -84,6 +89,7 @@ class Package(object):
             if 'stashed' in locals() and stashed: self.git.stash('pop')
 
     def cmd_merge(self, remote, branch):
+        self._assert_remote_branch(remote, branch)
         if not self._is_behind_commit(remote, branch):
             output = 'Already up-to-date.'
         else:
@@ -93,10 +99,7 @@ class Package(object):
     def cmd_push(self, flags, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
-        available_remotes = self.get_available_remotes()
-        if remote not in available_remotes:
-            raise ValueError('Remote "%s" does not exists' % remote)
-
+        self._assert_remote_branch(remote, branch)
         available_branch = self.get_available_remote_branches(remote)
         if 'force' in flags:
             args = self._get_args_list(flags) + [remote, branch]
@@ -131,22 +134,26 @@ class Package(object):
         except OSError as e:
             return Color.red(e.strerror)
 
-    def cmd_checkout(self, flags, branch_name):
+    def cmd_checkout(self, flags, branch_name, from_branch=None):
         available_branches = self.get_available_local_branches()
         if not branch_name:
             raise ValueError('Branch name missing')
         if '-b' in flags:
             if branch_name in available_branches:
                 raise ValueError('Failing creating branch "%s". Already exists' % branch_name)
-            args = self._get_args_list(flags) + [branch_name]
-            output = self.git.checkout(args)
+            self.git.checkout(['-b', flags['-b'] ,from_branch])
+            output = Color.green(('New branch %s created' % flags['-b']) +
+                                 (' from %s' % from_branch if from_branch else ''))
         if not '-b' in flags:
+            if from_branch: raise ValueError('Invalid syntax')
             if branch_name not in available_branches:
                 raise ValueError('Branch "%s" does not exists.' % branch_name)
-            output = self.git.checkout(branch_name)
-        return Color.green(output)
+            self.git.checkout(branch_name)
+            output = Color.green('Checkout %s branch' % branch_name)
+        return output
 
     def cmd_reset(self, flags, remote, branch):
+        self._assert_remote_branch(remote, branch)
         try:
             if 'stash' in flags and self._has_local_changes(): stashed = self.git.stash(u=True)
             if 'soft' in flags:
@@ -164,16 +171,13 @@ class Package(object):
         return output
 
     def cmd_clean(self, remote, branch):
-        available_branches = self.get_available_local_branches()
+        self._assert_remote_branch(remote, branch)
         cur_remote, cur_branch = self.get_cur_remote_branch()
         if cur_branch == branch:
             raise ValueError('Cannot remove branch in use "%s"' % branch)
 
-        if branch not in available_branches:
-            output = Color.yellow('Branch "%s" was not found' % branch)
-        else:
-            self.git.branch(['-D', branch])
-            output = Color.green('Branch "%s" was removed' % branch)
+        self.git.branch(['-D', branch])
+        output = Color.green('Branch "%s" was removed' % branch)
 
         if not remote: return output
 
@@ -190,10 +194,13 @@ class Package(object):
 
     def cmd_rebase(self, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
-        remote, branch = remote or cur_remote, branch or cur_branch
+        self._assert_remote_branch(remote, branch)
         try:
             if self._has_local_changes(): stashed = self.git.stash(u=True) != u'No local changes to save'
-            output = self.git.rebase('%s/%s'%(remote,branch))
+            if remote:
+                output = self.git.rebase('%s/%s'%(remote,branch))
+            else:
+                output = self.git.rebase(branch)
         except GitCommandError as e:
             self.git.rebase(abort=True)
             self.git.checkout(cur_branch)
@@ -209,13 +216,16 @@ class Package(object):
             self.git.fetch(remote)
             remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
         else:
-            remote_commits = self.git.log(*['--oneline', 'HEAD..%s' % (branch)])
+            remote_commits = self.git.log(*['--oneline', 'HEAD..%s' % branch])
         return len(remote_commits) > 0
 
     def _is_ahead_commit(self, remote, branch):
         # Getting number of commits behind
-        self.git.fetch([remote])
-        remote_commits = self.git.log(*['--oneline', '%s/%s..HEAD' % (remote, branch)])
+        if remote:
+            self.git.fetch(remote)
+            remote_commits = self.git.log(*['--oneline', '%s/%s..HEAD' % (remote, branch)])
+        else:
+            remote_commits = self.git.log(*['--oneline', '%s..HEAD' % branch])
         return len(remote_commits) > 0
 
     def _has_local_changes(self):
@@ -224,11 +234,13 @@ class Package(object):
         return len(diffs) > 0
 
     def _assert_remote_branch(self, remote, branch):
-        available_remotes = self.get_available_remotes()
-        if remote not in available_remotes: raise ValueError('Remote "%s" does not exists' % remote)
-        available_branch = self.get_available_remote_branches(remote)
-        if branch not in available_branch: raise ValueError('Branch "%s" does not exists' % branch)
-        print(Color.yellow('IMPORTANT: Command running with %s/%s' % (remote, branch)))
+        if remote:
+            available_remotes = self.get_available_remotes()
+            if remote not in available_remotes: raise ValueError('Remote "%s" does not exists' % remote)
+            available_branches = self.get_available_remote_branches(remote)
+        else:
+            available_branches = self.get_available_local_branches()
+        if branch not in available_branches: raise ValueError('Branch "%s" does not exists' % branch)
 
     def _get_args_list(self, args):
         return ['%s%s' % (

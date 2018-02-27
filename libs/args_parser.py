@@ -95,7 +95,7 @@ class GitCheckoutParser(ArgumentParser):
     @staticmethod
     def create():
         parser = GitCheckoutParser(description='"git checkout" arguments', prog='mgit checkout')
-        parser.add_argument('-b', dest='-b', action='store_true', required=False, help="Create new branch")
+        parser.add_argument('-b', dest='-b', type=str, required=False, help="Create new branch")
         parser.add_argument('--upstream', dest='upstream', action='store_true', required=False, help="Set upstream")
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
