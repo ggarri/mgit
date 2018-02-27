@@ -83,6 +83,11 @@ class Package(object):
         finally:
             if 'stashed' in locals() and stashed: self.git.stash('pop')
 
+    def cmd_merge(self, remote, branch):
+        if not self._is_behind_commit(remote, branch):
+            output = 'Already up-to-date.'
+        else:
+            output = self.git.merge(remote+'/'+branch) if remote else self.git.merge(branch)
         return output
 
     def cmd_push(self, flags, remote, branch):
@@ -200,8 +205,11 @@ class Package(object):
 
     def _is_behind_commit(self, remote, branch):
         # Getting number of commits behind
-        self.git.fetch([remote])
-        remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
+        if remote:
+            self.git.fetch(remote)
+            remote_commits = self.git.log(*['--oneline', 'HEAD..%s/%s' % (remote, branch)])
+        else:
+            remote_commits = self.git.log(*['--oneline', 'HEAD..%s' % (branch)])
         return len(remote_commits) > 0
 
     def _is_ahead_commit(self, remote, branch):

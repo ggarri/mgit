@@ -120,6 +120,7 @@ class Workspace(object):
         if git_cmd == 'clean': return Workspace.run_cmd_clean(package, flags)
         if git_cmd == 'bash': return Workspace.run_cmd_bash(package, flags)
         if git_cmd == 'reset': return Workspace.run_cmd_reset(package, flags)
+        if git_cmd == 'merge': return Workspace.run_cmd_merge(package, flags)
         else: raise ValueError('Invalid argument "git %s" is not implemented or does not exists' % git_cmd)
 
     @staticmethod
@@ -161,6 +162,16 @@ class Workspace(object):
         """
         args, remote_branch = Workspace._get_cmd_args(GitPullParser.create(), flags)
         return package.cmd_pull(args, remote_branch[0], remote_branch[1])
+
+    @staticmethod
+    def run_cmd_merge(package, flags):
+        """
+        :param package: Package
+        :param flags: list(str)
+        :rtype: str
+        """
+        args, remote_branch = Workspace._get_cmd_args(GitMergeParser.create(), flags)
+        return package.cmd_merge(remote_branch[0], remote_branch[1])
 
     @staticmethod
     def run_cmd_push(package, flags):

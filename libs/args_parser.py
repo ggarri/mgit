@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from os import environ
 
-available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean', 'bash', 'reset']
+available_git_actions = ['log', 'diff', 'status', 'pull', 'push', 'commit', 'checkout', 'clean', 'bash', 'reset', 'merge']
 
 class AppArgsParser(ArgumentParser):
     @staticmethod
@@ -56,6 +56,13 @@ class GitPullParser(ArgumentParser):
         parser = GitPullParser(description='"git pull" arguments', prog='mgit Pull')
         parser.add_argument('--rebase', dest='rebase', action='store_true', required=False,
                             help='Include git --rebase action')
+        # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
+        return parser
+
+class GitMergeParser(ArgumentParser):
+    @staticmethod
+    def create():
+        parser = GitMergeParser(description='"git merge" arguments', prog='mgit Pull')
         # parser.add_argument('git_cmd', nargs='*', help='Git command to execute on every package')
         return parser
 
