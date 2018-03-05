@@ -140,7 +140,8 @@ class Package(object):
         if '-b' in flags:
             if branch_name in available_branches:
                 raise ValueError('Failing creating branch "%s". Already exists' % branch_name)
-            self.git.checkout(['-b', flags['-b'] ,from_branch])
+	    if from_branch: self.git.checkout(['-b', flags['-b'], from_branch])
+	    else: self.git.checkout(['-b', flags['-b']])
             output = Color.green(('New branch %s created' % flags['-b']) +
                                  (' from %s' % from_branch if from_branch else ''))
         else:
