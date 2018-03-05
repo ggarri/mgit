@@ -99,7 +99,7 @@ class Package(object):
     def cmd_push(self, flags, remote, branch):
         cur_remote, cur_branch = self.get_cur_remote_branch()
         remote, branch = remote or cur_remote, branch or cur_branch
-        self._assert_remote_branch(remote, branch)
+        #self._assert_remote_branch(remote, branch)
         available_branch = self.get_available_remote_branches(remote)
         if 'force' in flags:
             args = self._get_args_list(flags) + [remote, branch]
